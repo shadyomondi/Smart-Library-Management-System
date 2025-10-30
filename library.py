@@ -1,143 +1,151 @@
-# library.py
-# ----------------------------------------------------------
-# Enhanced version: includes transaction logging (transactions.txt)
-# ----------------------------------------------------------
-
 from book import Book
 from member import Member
-from datetime import datetime
-import os
+import datetime
 
 class Library:
     def __init__(self):
         self.books = []
         self.members = []
-        self.transaction_history = []
+        self.transactions = []
         self.load_books()
         self.load_members()
+        self.load_transactions()
 
-    # ---------------- FILE HANDLING ----------------
-    def load_books(self):
-        if os.path.exists("books.txt"):
-            with open("books.txt", "r") as f:
-                for line in f:
-                    data = line.strip().split(",")
-                    if len(data) == 5:
-                        book_id, title, author, available_copies, borrow_count = data
-                        self.books.append(Book(book_id, title, author, int(available_copies)))
-                        self.books[-1].borrow_count = int(borrow_count)
-
-    def save_books(self):
-        with open("books.txt", "w") as f:
-            for b in self.books:
-                f.write(f"{b.book_id},{b.title},{b.author},{b.available_copies},{b.borrow_count}\n")
-
-    def load_members(self):
-        if os.path.exists("members.txt"):
-            with open("members.txt", "r") as f:
-                for line in f:
-                    data = line.strip().split(",")
-                    if len(data) >= 2:
-                        member_id = data[0]
-                        name = data[1]
-                        borrowed_books = data[2:] if len(data) > 2 else []
-                        member = Member(member_id, name)
-                        member.borrowed_books = borrowed_books
-                        self.members.append(member)
-
-    def save_members(self):
-        with open("members.txt", "w") as f:
-            for m in self.members:
-                borrowed = ",".join(m.borrowed_books)
-                f.write(f"{m.member_id},{m.name}")
-                if borrowed:
-                    f.write(f",{borrowed}")
-                f.write("\n")
-
-    # ---------------- TRANSACTION LOGGING ----------------
-    def log_transaction(self, action):
-        """Record transactions with timestamp in transactions.txt"""
-        timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-        log_entry = f"{timestamp} {action}\n"
-        with open("transactions.txt", "a") as log_file:
-            log_file.write(log_entry)
-
-    # ---------------- BOOK MANAGEMENT ----------------
     def add_book(self, book):
         self.books.append(book)
         self.save_books()
-        print(f"Book '{book.title}' added successfully and saved to file.")
-        self.log_transaction(f"Added book '{book.title}' by {book.author}")
 
-    def display_all_books(self):
-        if not self.books:
-            print("No books available.")
-        else:
-            for book in self.books:
-                book.display_info()
-
-    def search_by_author(self, author_name):
-        found_books = [b for b in self.books if b.author.lower() == author_name.lower()]
-        if found_books:
-            print(f"Books by {author_name}:")
-            for book in found_books:
-                book.display_info()
-        else:
-            print(f"No books found by {author_name}.")
-
-    # ---------------- MEMBER MANAGEMENT ----------------
     def add_member(self, member):
         self.members.append(member)
         self.save_members()
-        print(f"Member '{member.name}' added successfully and saved to file.")
-        self.log_transaction(f"Registered new member '{member.name}'")
+
+    def display_all_books(self):
+        for book in self.books:
+            book.display_info()
 
     def display_all_members(self):
-        if not self.members:
-            print("No members registered.")
-        else:
-            for member in self.members:
-                member.display_member_info()
+        for member in self.members:
+            member.display_member_info()
 
-    # ---------------- TRANSACTIONS ----------------
+    def find_book(self, book_title):
+        for book in self.books:
+            if book.title.lower() == book_title.lower():
+                return book
+        return None
+
+    def find_member(self, member_id):
+        for member in self.members:
+            if member.member_id == member_id:
+                return member
+        return None
+
     def borrow_transaction(self, member_id, book_title):
-        member = next((m for m in self.members if m.member_id == member_id), None)
-        book = next((b for b in self.books if b.title.lower() == book_title.lower()), None)
-
+        member = self.find_member(member_id)
+        book = self.find_book(book_title)
         if member and book:
             member.borrow_book(book)
-            self.transaction_history.append(f"{member.name} borrowed '{book.title}'")
+            book.increment_borrow_count()
+            self.log_transaction(f"Borrowed: {book.title} by {member.name}")
             self.save_books()
-            self.save_members()
-            self.log_transaction(f"Member {member.name} borrowed '{book.title}'")
+            self.save_transactions()
         else:
-            print("Invalid member ID or book title.")
+            print("Error: Member or Book not found.")
 
     def return_transaction(self, member_id, book_title):
-        member = next((m for m in self.members if m.member_id == member_id), None)
-        book = next((b for b in self.books if b.title.lower() == book_title.lower()), None)
-
+        member = self.find_member(member_id)
+        book = self.find_book(book_title)
         if member and book:
             member.return_book(book)
-            self.transaction_history.append(f"{member.name} returned '{book.title}'")
+            self.log_transaction(f"Returned: {book.title} by {member.name}")
             self.save_books()
-            self.save_members()
-            self.log_transaction(f"Member {member.name} returned '{book.title}'")
+            self.save_transactions()
         else:
-            print("Invalid member ID or book title.")
+            print("Error: Member or Book not found.")
 
-    # ---------------- REPORTS ----------------
-    def most_borrowed_book(self):
+    def log_transaction(self, transaction):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.transactions.append(f"{timestamp} - {transaction}")
+
+    def display_transaction_history(self):
+        print("\n--- Transaction History ---")
+        for transaction in self.transactions:
+            print(transaction)
+
+    def search_by_author(self, author_name):
+        found_books = False
+        print(f"\n--- Books by {author_name} ---")
+        for book in self.books:
+            if book.author.lower() == author_name.lower():
+                book.display_info()
+                found_books = True
+        if not found_books:
+            print(f"No books found by {author_name}.")
+
+    def display_most_borrowed_book(self):
         if not self.books:
-            print("No books in library.")
+            print("No books in the library.")
             return
-        most_borrowed = max(self.books, key=lambda b: b.borrow_count, default=None)
-        print(f"Most Borrowed Book: '{most_borrowed.title}' by {most_borrowed.author} ({most_borrowed.borrow_count} times)")
 
-    def show_transaction_history(self):
-        if not self.transaction_history:
-            print("No transactions yet.")
+        most_borrowed = max(self.books, key=lambda book: book.borrow_count)
+        if most_borrowed.borrow_count > 0:
+            print("\n--- Most Borrowed Book ---")
+            most_borrowed.display_info()
+            print(f"Borrowed {most_borrowed.borrow_count} times.")
         else:
-            print("=== TRANSACTION HISTORY ===")
-            for record in self.transaction_history:
-                print(record)
+            print("No books have been borrowed yet.")
+
+    def save_books(self):
+        with open("books.txt", "w") as file:
+            for book in self.books:
+                file.write(f"{book.book_id},{book.title},{book.author},{book.available_copies},{book.borrow_count}\n")
+
+    def load_books(self):
+        try:
+            with open("books.txt", "r") as file:
+                for line in file:
+                    parts = line.strip().split(',')
+                    book_id, title, author, available_copies, borrow_count = parts
+                    self.books.append(Book(book_id, title, author, int(available_copies), int(borrow_count)))
+        except FileNotFoundError:
+            pass
+        except ValueError:
+            # Handle case where borrow_count is not in the file for older data
+            with open("books.txt", "r") as file:
+                for line in file:
+                    book_id, title, author, available_copies = line.strip().split(',')
+                    self.books.append(Book(book_id, title, author, int(available_copies)))
+
+
+    def save_members(self):
+        with open("members.txt", "w") as file:
+            for member in self.members:
+                borrowed_books = ','.join([book.title for book in member.borrowed_books])
+                file.write(f"{member.member_id},{member.name},{borrowed_books}\n")
+
+    def load_members(self):
+        try:
+            with open("members.txt", "r") as file:
+                for line in file:
+                    parts = line.strip().split(',')
+                    member_id, name = parts[:2]
+                    borrowed_books_titles = parts[2:] if len(parts) > 2 else []
+                    member = Member(member_id, name)
+                    for title in borrowed_books_titles:
+                        book = self.find_book(title)
+                        if book:
+                            member.borrowed_books.append(book)
+                    self.members.append(member)
+        except FileNotFoundError:
+            pass
+
+    def save_transactions(self):
+        with open("transactions.txt", "w") as file:
+            for transaction in self.transactions:
+                file.write(f"{transaction}\n")
+
+    def load_transactions(self):
+        try:
+            with open("transactions.txt", "r") as file:
+                self.transactions = [line.strip() for line in file.readlines()]
+        except FileNotFoundError:
+            pass

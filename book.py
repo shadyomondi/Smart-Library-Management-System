@@ -1,24 +1,16 @@
-# book.py
-# ----------------------------------------------------------
-# Defines the Book class for the Smart Library Management System
-# ----------------------------------------------------------
-
 class Book:
-    def __init__(self, book_id, title, author, available_copies):
+    def __init__(self, book_id, title, author, available_copies, borrow_count=0):
         self.book_id = book_id
         self.title = title
         self.author = author
         self.available_copies = available_copies
-        self.borrow_count = 0  # Track how many times the book has been borrowed
+        self.borrow_count = borrow_count
 
     def display_info(self):
-        """Display detailed book information"""
-        print(f"Book ID: {self.book_id} | Title: {self.title} | Author: {self.author} | Available Copies: {self.available_copies}")
+        print(f"Book ID: {self.book_id} | Title: {self.title} | Author: {self.author} | Available: {self.available_copies}")
 
     def update_copies(self, number):
-        """Increase or decrease available copies"""
         self.available_copies += number
 
-    def record_borrow(self):
-        """Increment borrow counter for tracking most borrowed books"""
+    def increment_borrow_count(self):
         self.borrow_count += 1

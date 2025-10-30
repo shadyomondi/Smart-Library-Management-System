@@ -1,2 +1,3 @@
 M001,Kamau,Data Science 101,Data Science 101
-M002,Alice
+M002,Alice,
+001,omondi,

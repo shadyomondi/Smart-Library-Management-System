@@ -1,3 +1,4 @@
 B001,Python for Beginners,Jane Doe,5,2
 B002,Data Science 101,John Smith,1,4
 B003,Cybersecurity Awareness,Kimani Waweru,10,0
+inte/mg/2884/09/22,cyber crime,shad,44,1
